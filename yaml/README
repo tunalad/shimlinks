@@ -1,0 +1,15 @@
+Name: mini-yaml
+URL: https://github.com/jimmiebergmann/mini-yaml
+Version: 22d3dcf5684a11f9c0508c1ad8b3282a1d888319
+License: MIT
+License File: LICENSE
+
+Description:
+  Single header YAML 1.0 C++11 serializer/deserializer.
+
+Local Modifications:
+ - Yaml.cpp:1460 - widened the printable-character check from `> 125` to
+   `> 126` so a bare `~` in a plain scalar (e.g. `target: ~/.java`) parses.
+ - Yaml.cpp:1663 - added an early `return true` when a map key has no inline
+   value and the next line starts a block sequence at the same offset, so
+   same-indent `only:` / `rules:` lists parse.

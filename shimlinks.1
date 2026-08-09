@@ -1,0 +1,198 @@
+.TH SHIMLINKS 1 "August 2026" "shimlinks VERSION" "User Commands"
+.SH NAME
+shimlinks \- run commands with dotfile/state dirs pointing somewhere else
+.SH SYNOPSIS
+.B shimlinks
+.RI [ options ]
+.br
+.B shim-name
+.RI [ args ... ]
+.SH DESCRIPTION
+.B shimlinks
+runs a command while its dotfile/state directories temporarily point
+somewhere else.
+.PP
+The approach is inspired by boxxy, but instead of redirecting file
+operations with Linux namespaces it uses symlink shims: a shim is a symlink in
+the shimdir that points at this binary.  When the binary is invoked through a
+shim (by its shim name), it:
+.IP "1." 4
+looks up the rules that match the shim name
+.IP "2." 4
+makes each matching rule's
+.B target
+a symlink pointing at its
+.B rewrite
+.IP "3." 4
+runs the requested command with those symlinks in place
+.IP "4." 4
+removes those symlinks when the command exits
+.PP
+The exit status of the wrapped command is preserved.
+.SH OPTIONS
+.TP
+.B \-\-install
+Create a shim for every
+.B only
+name in the config.
+Safe to re-run; existing shims that already point at this program are left
+alone, and foreign files in the shimdir are not touched.
+.TP
+.B \-\-uninstall
+Remove shims in the shimdir that are no longer listed in the config.
+Foreign files in the shimdir are left alone.
+.TP
+.B \-h\fP, \fB\-\-help
+Show a short help message.
+.TP
+.B \-\-version
+Show the version.
+.SH CONFIGURATION
+The config file is written in YAML.  Its location is resolved in this
+order:
+.IP "1." 4
+.BR $SHIMLINKS_CONFIG
+.IP "2." 4
+.BR $XDG_CONFIG_HOME/shimlinks/config.yaml
+.IP "3." 4
+.BR ~/.config/shimlinks/config.yaml .
+.PP
+The format follows boxxy, so an existing boxxy config can be reused with
+minimal changes.  The keys we use are:
+.TP
+.B shimdir
+Directory where shims live.
+It must be on your
+.BR PATH ,
+or the program refuses to run (see EXIT STATUS).
+.TP
+.B rules
+List of rules.
+Each rule consists of a
+.B target,
+a
+.B rewrite,
+and an
+.B only
+list.
+.TP
+.B target
+The dotfile/state path to redirect.
+While the command runs, it is made a symlink pointing at its
+.B rewrite.
+.TP
+.B rewrite
+The location that
+.B target
+points at while the command runs.
+.TP
+.B only
+The command names that use this rule.
+Each name becomes a shim in the shimdir.
+.PP
+The
+.B name
+and
+.B mode
+keys from boxxy configs are accepted but do nothing here, so they can be
+ignored.
+.PP
+Example:
+.RS
+.nf
+shimdir: ~/.local/shimlinks
+rules:
+  \- target: ~/.java
+    rewrite: ~/.local/share/java
+    only:
+      \- java
+  \- target: ~/.gnupg
+    rewrite: ~/.local/share/gnupg
+    only:
+      \- gpg
+.fi
+.RE
+.PP
+A rule without an
+.B only
+list creates no shims and is ignored.
+A malformed config aborts with an error instead of running with a partial
+config.
+.PP
+Only the block format shown above is supported; anything else is rejected
+with an error.
+.SH ENVIRONMENT
+.TP
+.B SHIMLINKS_CONFIG
+Path to the config file, overriding the defaults (see CONFIGURATION).
+.TP
+.B SHIMLINKS_DEBUG
+When set to 1, print verbose per-step logging to stderr.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+Usage, config, or setup error (missing or invalid config, shimdir not on
+.BR PATH ,
+shimdir not a directory, refusing to run a program by name, or refusing to
+exec the program itself).
+.TP
+.B 2
+Unknown command-line option.
+.TP
+.B 127
+The wrapped command was not found on
+.BR PATH ,
+or failed to exec.
+.TP
+.B other
+The wrapped command's own exit status (128 + signal number if it was killed by
+a signal).
+.SH EXAMPLES
+Set up:
+.IP "1." 4
+Write
+.B ~/.config/shimlinks/config.yaml
+(see CONFIGURATION).
+.IP "2." 4
+Make sure the shimdir is on your
+.BR PATH ,
+for example:
+.RS
+.nf
+export PATH="$HOME/.local/shimlinks:$PATH"
+.fi
+.RE
+.IP "3." 4
+Create the shims:
+.RS
+.nf
+shimlinks --install
+.fi
+.RE
+.PP
+Run a command through a shim:
+.RS
+.nf
+java \-jar app.jar
+.fi
+.RE
+.PP
+While
+.B java
+runs,
+.B ~/.java
+is a symlink to
+.BR ~/.local/share/java .
+The symlink is removed when
+.B java
+exits.
+.PP
+Remove stale shims:
+.RS
+.nf
+shimlinks --uninstall
+.fi
+.RE
