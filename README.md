@@ -42,7 +42,7 @@ rules:
       - gpg
 ```
 
-`shimdir` must be in your `PATH`. The `only` list must be in block form; flow-style lists like `only: [java]` are rejected with an error. A rule without an `only` list creates no shims and is ignored.
+`shimdir` must appear first in your `PATH`. The `only` list must be in block form; flow-style lists like `only: [java]` are rejected with an error. A rule without an `only` list creates no shims and is ignored.
 
 ## Usage
 
@@ -67,6 +67,7 @@ Removes shims that are no longer in the config.
 ## Environment
 
 `SHIMLINKS_CONFIG` overrides the config path.
+
 `SHIMLINKS_DEBUG=1` enables verbose logging.
 
 ## Acknowledgments
