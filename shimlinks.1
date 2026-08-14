@@ -35,12 +35,16 @@ The exit status of the wrapped command is preserved.
 Create a shim for every
 .B only
 name in the config.
-Safe to re-run; existing shims that already point at this program are left
+Existing shims that already point at this program are left
 alone, and foreign files in the shimdir are not touched.
 .TP
 .B \-\-uninstall
 Remove shims in the shimdir that are no longer listed in the config.
 Foreign files in the shimdir are left alone.
+.TP
+.B \-\-uninstall-all
+Remove all symlinks in the shimdir, whether or not it is listed in the
+config or points at this program.
 .TP
 .B \-h\fP, \fB\-\-help
 Show a short help message.
@@ -120,8 +124,7 @@ list creates no shims and is ignored.
 A malformed config aborts with an error instead of running with a partial
 config.
 .PP
-Only the block format shown above is supported; anything else is rejected
-with an error.
+Only the block format shown above is supported.
 .SH ENVIRONMENT
 .TP
 .B SHIMLINKS_CONFIG

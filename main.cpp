@@ -54,12 +54,12 @@ static void print_usage() {
             "  <shim-name> [ARGS...]    run a command through a shim\n"
             "\n"
             "OPTIONS\n"
-            "  --install      create shims for every name in the config (safe "
-            "to "
-            "re-run)\n"
-            "  --uninstall    remove shims that are no longer in the config\n"
-            "  -h, --help     show this help\n"
-            "  --version      show version\n"
+            "  --install         create shims for every name in the config\n"
+            "  --uninstall       remove shims that are no longer in the "
+            "config\n"
+            "  --uninstall-all   remove all symlinks in the shimdir\n"
+            "  -h, --help        show this help\n"
+            "  --version         show version\n"
             "\n"
             "CONFIG\n"
             "  ~/.config/shimlinks/config.yaml\n"
@@ -75,7 +75,15 @@ static void print_usage() {
 
 static void print_version() { cout << "shimlinks " VERSION "\n"; }
 
-enum class Opt { Help, Version, Install, Uninstall, Unknown, Name };
+enum class Opt {
+    Help,
+    Version,
+    Install,
+    Uninstall,
+    UninstallAll,
+    Unknown,
+    Name
+};
 
 static Opt parse_option(const string &flag) {
     if (flag == "--help" || flag == "-h")
@@ -86,6 +94,8 @@ static Opt parse_option(const string &flag) {
         return Opt::Install;
     if (flag == "--uninstall")
         return Opt::Uninstall;
+    if (flag == "--uninstall-all")
+        return Opt::UninstallAll;
     if (flag[0] == '-')
         return Opt::Unknown;
     return Opt::Name;
@@ -121,12 +131,13 @@ static int run_install(const fs::path &conf, const fs::path &self_exe) {
     return do_install(cfg.shim_dir, self_exe, collect_names(cfg.root));
 }
 
-static int run_uninstall(const fs::path &conf, const fs::path &self_exe) {
+static int run_uninstall(const fs::path &conf, const fs::path &self_exe,
+                         bool all) {
     Config cfg;
     if (!load_shimdir(conf, cfg)) {
         return 1;
     }
-    return do_uninstall(cfg.shim_dir, self_exe, collect_names(cfg.root));
+    return do_uninstall(cfg.shim_dir, self_exe, collect_names(cfg.root), all);
 }
 
 static int apply_rules(Yaml::Node &root, const string &cmd, LinkGuard &guard) {
@@ -241,7 +252,9 @@ int main(int argc, char *argv[]) {
         case Opt::Install:
             return run_install(conf, self_exe);
         case Opt::Uninstall:
-            return run_uninstall(conf, self_exe);
+            return run_uninstall(conf, self_exe, false);
+        case Opt::UninstallAll:
+            return run_uninstall(conf, self_exe, true);
         case Opt::Unknown:
             cerr << "shimlinks: unknown option: " << argv[1] << "\n"
                  << "try 'shimlinks --help'\n";

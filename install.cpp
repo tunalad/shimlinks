@@ -46,26 +46,31 @@ int do_install(const fs::path &shim_dir, const fs::path &self,
 }
 
 int do_uninstall(const fs::path &shim_dir, const fs::path &self,
-                 const set<string> &names) {
+                 const set<string> &names, bool all) {
     error_code ec;
     if (!fs::is_directory(shim_dir, ec)) {
+        cout << "no shims to remove\n";
         return 0;
     }
+    size_t removed = 0;
     for (const auto &entry : fs::directory_iterator(shim_dir, ec)) {
         const fs::path &p = entry.path();
         string name = p.filename().string();
-        if (names.count(name)) {
+        if (!all && (names.count(name) || !points_at_us(p, self)))
+            continue;
+        if (all && !fs::is_symlink(p, ec))
+            continue;
+        fs::remove(p, ec);
+        if (ec) {
+            cerr << "shimlinks: failed to remove " << p << ": " << ec.message()
+                 << "\n";
             continue;
         }
-        if (points_at_us(p, self)) {
-            fs::remove(p, ec);
-            if (ec) {
-                cerr << "shimlinks: failed to remove " << p << ": "
-                     << ec.message() << "\n";
-                continue;
-            }
-            cout << "removed stale: " << name << "\n";
-        }
+        cout << (all ? "removed: " : "removed stale: ") << name << "\n";
+        ++removed;
+    }
+    if (removed == 0) {
+        cout << "no shims to remove\n";
     }
     return 0;
 }

@@ -64,6 +64,12 @@ shimlinks --uninstall
 
 Removes shims that are no longer in the config.
 
+```
+shimlinks --uninstall-all
+```
+
+Removes all symlinks in the shimdir.
+
 ## Environment
 
 `SHIMLINKS_CONFIG` overrides the config path.
